@@ -1,15 +1,18 @@
 #!/usr/bin/python3
 # lock boxes 
 def canUnlockAll(boxes):
-    n = len(boxes)
-    opened = set([0])  # Start with the first box opened
-    keys = [0]  # Start with the keys from the first box (box 0)
+    n = len(boxes)  # Number of boxes
+    opened = set([0])  # Start with box 0 unlocked
+    stack = [0]  # Start exploring from box 0
     
-    while keys:
-        current_box = keys.pop()  # Take the last box to open
-        for key in boxes[current_box]:
-            if key not in opened and key < n:
-                opened.add(key)
-                keys.append(key)  # Add the keys from this new box to be opened
-                
+    # Explore the boxes while there are keys to process
+    while stack:
+        box = stack.pop()  # Take the last box opened
+        for key in boxes[box]:
+            if key not in opened and key < n:  # Only unlock unopened boxes within bounds
+                opened.add(key)  # Mark the box as opened
+                stack.append(key)  # Add the new box to explore further
+
+    # Return True if all boxes are opened
     return len(opened) == n
+
