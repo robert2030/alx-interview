@@ -1,67 +1,50 @@
 #!/usr/bin/python3
 """
-File: 0-stats.py
-
-Log parsing
+log parsing
 """
-from collections import defaultdict
+
 import sys
 import re
 
 
-def reporter(total_size, status_codes):
+def output(log: dict) -> None:
     """
-    Prepares a report.
-
-    parameters:
-    - total_size (int): Size of a file.
-    - status_codes (int): Status of a request.
+    helper function to display stats
     """
-    print(f"File size: {total_size}")
-    sorted_status_codes = sorted(status_codes.items())
-    for status, count in sorted_status_codes:
-        print(f"{status}: {count}")
-
-
-def log_parser():
-    """
-    Reads stdin line by line and computes metrics.
-    """
-    total_size = 0
-    status_codes = defaultdict(int)
-    line_count = 0
-
-    codes = ["200", "301", "400", "401", "403", "404", "405", "500"]
-
-    log_pattern = re.compile(r'^([\w\.-]+)\s*-?\s*\[([^\]]+)\] '
-                             r'"GET /projects/260 HTTP/1\.1" (\S+) (\d+)$')
-
-    try:
-        for line in sys.stdin:
-            if log_pattern.match(line):
-                line_count += 1
-                try:
-                    file_size = int(line.split()[-1])
-                    status_c = line.split()[-2]
-                except ValueError:
-                    continue
-
-                total_size += file_size
-
-                if status_c in codes:
-                    status_codes[status_c] += 1
-
-                if line_count == 10:
-                    reporter(total_size, status_codes)
-                    line_count = 0
-            else:
-                continue
-        # One line report
-        reporter(total_size, status_codes)
-    except KeyboardInterrupt:
-        reporter(total_size, status_codes)
-        raise
+    print("File size: {}".format(log["file_size"]))
+    for code in sorted(log["code_frequency"]):
+        if log["code_frequency"][code]:
+            print("{}: {}".format(code, log["code_frequency"][code]))
 
 
 if __name__ == "__main__":
-    log_parser()
+    regex = re.compile(
+    r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3} - \[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d+\] "GET /projects/260 HTTP/1.1" (.{3}) (\d+)')  # nopep8
+
+    line_count = 0
+    log = {}
+    log["file_size"] = 0
+    log["code_frequency"] = {
+        str(code): 0 for code in [
+            200, 301, 400, 401, 403, 404, 405, 500]}
+
+    try:
+        for line in sys.stdin:
+            line = line.strip()
+            match = regex.fullmatch(line)
+            if (match):
+                line_count += 1
+                code = match.group(1)
+                file_size = int(match.group(2))
+
+                # File size
+                log["file_size"] += file_size
+
+                # status code
+                if (code.isdecimal()):
+                    log["code_frequency"][code] += 1
+
+                if (line_count % 10 == 0):
+                    output(log)
+    finally:
+        output(log)
